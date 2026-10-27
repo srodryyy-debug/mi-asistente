@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Mi Asistente Personal</title>
+  <style>
+    :root {
+      --bg-color: #0f172a;
+      --card-bg: #1e293b;
+      --card-border: #334155;
+      --primary: #38bdf8;
+      --primary-hover: #0284c7;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --success: #10b981;
+      --nav-height: 70px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Contenedor principal de vistas */
+    main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      padding-bottom: calc(var(--nav-height) + 20px);
+      max-width: 600px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    header {
+      padding: 12px 16px;
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--card-border);
+      text-align: center;
+      font-weight: bold;
+      font-size: 1.1rem;
+      color: var(--primary);
+    }
+
+    /* Estilos de botones grandes */
+    button {
+      background: var(--primary);
+      color: #000;
+      border: none;
+      border-radius: 12px;
+      padding: 14px 18px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.2s, transform 0.1s;
+      width: 100%;
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    button.btn-secondary {
+      background: #334155;
+      color: var(--text-main);
+    }
+
+    button.btn-danger {
+      background: var(--danger);
+      color: #fff;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      background: #0f172a;
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+      padding: 14px;
+      border-radius: 12px;
+      font-size: 1rem;
+      margin-bottom: 12px;
+      outline: none;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--primary);
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+
+    .card-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Vistas */
+    .view {
+      display: none;
+    }
+
+    .view.active {
+      display: block;
+      animation: fadeIn 0.2s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Chat */
+    .chat-container {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding-bottom: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .message {
+      max-width: 85%;
+      padding: 12px 16px;
+      border-radius: 16px;
+      font-size: 0.95rem;
+      line-height: 1.4;
+      word-wrap: break-word;
+    }
+
+    .message.user {
+      background: var(--primary);
+      color: #000;
+      align-self: flex-end;
+      border-bottom-right-radius: 4px;
+    }
+
+    .message.assistant {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      align-self: flex-start;
+      border-bottom-left-radius: 4px;
+    }
+
+    .chat-input-bar {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .chat-input-bar input {
+      margin-bottom: 0;
+      flex: 1;
+    }
+
+    .chat-input-bar button {
+      width: auto;
+      padding: 0 20px;
+    }
+
+    /* Badges / Etiquetas */
+    .badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+
+    .badge-alta { background: var(--danger); color: #fff; }
+    .badge-media { background: var(--warning); color: #000; }
+    .badge-baja { background: var(--success); color: #000; }
+
+    /* Barra inferior */
+    nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: var(--nav-height);
+      background: var(--card-bg);
+      border-top: 1px solid var(--card-border);
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      max-width: 600px;
+      margin: 0 auto;
+      z-index: 10;
+    }
+
+    .nav-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      padding: 8px 4px;
+      width: 100%;
+      height: 100%;
+    }
+
+    .nav-btn svg {
+      width: 22px;
+      height: 22px;
+      margin-bottom: 3px;
+      fill: currentColor;
+    }
+
+    .nav-btn.active {
+      color: var(--primary);
+    }
+
+    .meta-sub {
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      margin-top: 4px;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .notice {
+      font-size: 0.85rem;
+      background: #172554;
+      border-left: 4px solid var(--primary);
+      padding: 10px;
+      border-radius: 6px;
+      margin-bottom: 12px;
+    }
+  </style>
+</head>
+<body>
+
+  <header id="appHeader">Mi Asistente Personal</header>
+
+  <main>
+    <!-- 1. VISTA DE CHAT -->
+    <section id="view-chat" class="view active">
+      <div class="chat-container">
+        <div id="chatMessages" class="chat-messages"></div>
+        <div class="chat-input-bar">
+          <input type="text" id="chatInput" placeholder="Escribe tu mensaje..." autocomplete="off">
+          <button id="sendBtn" onclick="handleSendChat()">Enviar</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. VISTA DE TAREAS Y RECORDATORIOS -->
+    <section id="view-tasks" class="view">
+      <div class="card">
+        <div class="card-title">Nueva Tarea</div>
+        <input type="text" id="taskInput" placeholder="¿Qué necesitas hacer?">
+        <select id="taskStatusSelect">
+          <option value="pending">Pendiente</option>
+          <option value="in_progress">En progreso</option>
+          <option value="completed">Completada</option>
+        </select>
+        <button onclick="addTask()">Agregar Tarea</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Nuevo Recordatorio</div>
+        <input type="text" id="reminderText" placeholder="Motivo del recordatorio">
+        <input type="datetime-local" id="reminderDateTime">
+        <button class="btn-secondary" onclick="addReminder()">Crear Recordatorio</button>
+      </div>
+
+      <h3 style="margin: 16px 0 8px 0;">Tareas</h3>
+      <div id="tasksList"></div>
+
+      <h3 style="margin: 20px 0 8px 0;">Recordatorios</h3>
+      <div id="remindersList"></div>
+    </section>
+
+    <!-- 3. VISTA DE PROYECTOS -->
+    <section id="view-projects" class="view">
+      <div class="card">
+        <div class="card-title">Nuevo Proyecto</div>
+        <input type="text" id="projectName" placeholder="Nombre del proyecto">
+        <textarea id="projectDesc" rows="2" placeholder="Objetivo o descripción rápida"></textarea>
+        <select id="projectPriority">
+          <option value="alta">Prioridad Alta</option>
+          <option value="media" selected>Prioridad Media</option>
+          <option value="baja">Prioridad Baja</option>
+        </select>
+        <button onclick="addProject()">Guardar Proyecto</button>
+      </div>
+
+      <h3 style="margin: 16px 0 8px 0;">Tus Proyectos</h3>
+      <div id="projectsList"></div>
+    </section>
+
+    <!-- 4. VISTA DE NOTAS Y MEMORIA -->
+    <section id="view-notes" class="view">
+      <div class="card">
+        <div class="card-title">Memoria del Asistente</div>
+        <p class="meta-sub" style="margin-bottom: 8px;">
+          Escribe aquí datos que quieres que el asistente siempre recuerde sobre ti (preferencias, rutinas, etc.).
+        </p>
+        <textarea id="assistantMemory" rows="3" placeholder="Ej: Me llamo Carlos, me gusta estudiar por las mañanas..."></textarea>
+        <button class="btn-secondary" onclick="saveMemory()">Guardar en Memoria</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Nueva Nota Rápida</div>
+        <textarea id="noteInput" rows="3" placeholder="Escribe ideas, apuntes o enlaces..."></textarea>
+        <button onclick="addNote()">Guardar Nota</button>
+      </div>
+
+      <h3 style="margin: 16px 0 8px 0;">Notas Guardadas</h3>
+      <div id="notesList"></div>
+    </section>
+
+    <!-- 5. VISTA DE AJUSTES Y PRIVACIDAD -->
+    <section id="view-settings" class="view">
+      <div class="card">
+        <div class="card-title">Personalidad del Asistente</div>
+        <label class="meta-sub" style="display:block; margin-bottom:4px;">Nombre del Asistente:</label>
+        <input type="text" id="settingName">
+
+        <label class="meta-sub" style="display:block; margin-bottom:4px;">Tono de respuesta:</label>
+        <select id="settingTone">
+          <option value="amistoso">Amistoso y cercano</option>
+          <option value="formal">Formal y profesional</option>
+          <option value="conciso">Rápido y conciso</option>
+          <option value="motivador">Motivador y enérgico</option>
+        </select>
+        <button onclick="saveSettings()">Aplicar Cambios</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Conexión Externa de IA (Opcional)</div>
+        <div class="notice">
+          Por defecto, el asistente usa un <strong>motor inteligente local</strong> que procesa tus tareas y notas en tu celular sin enviar datos a internet. Si deseas conectar una API externa de IA en el futuro, puedes colocar aquí tu clave.
+        </div>
+        <input type="text" id="apiKeyInput" placeholder="Clave de API externa (opcional)">
+        <p class="meta-sub">Si está vacío, funcionará al 100% en modo local y privado.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-title" style="color: var(--danger);">Privacidad y Datos</div>
+        <p class="meta-sub" style="margin-bottom: 12px;">
+          Toda la información se guarda únicamente en tu dispositivo (LocalStorage). No se recopila información personal ni se solicitan contraseñas.
+        </p>
+        <button class="btn-secondary" onclick="exportData()" style="margin-bottom: 10px;">Descargar Copia de mis Datos (JSON)</button>
+        <button class="btn-danger" onclick="wipeData()">Eliminar Todos los Datos</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- BARRA DE NAVEGACIÓN INFERIOR -->
+  <nav>
+    <button class="nav-btn active" onclick="switchTab('chat')">
+      <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+      Chat
+    </button>
+    <button class="nav-btn" onclick="switchTab('tasks')">
+      <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+      Tareas
+    </button>
+    <button class="nav-btn" onclick="switchTab('projects')">
+      <svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+      Proyectos
+    </button>
+    <button class="nav-btn" onclick="switchTab('notes')">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+      Notas
+    </button>
+    <button class="nav-btn" onclick="switchTab('settings')">
+      <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+      Ajustes
+    </button>
+  </nav>
+
+  <script>
+    /* ========================================================
+       ESTADO Y ALMACENAMIENTO (LocalStorage)
+       ======================================================== */
+    const STORAGE_KEY = 'MI_ASISTENTE_DATOS_V1';
+
+    let appData = {
+      settings: {
+        name: 'Aura',
+        tone: 'amistoso',
+        apiKey: ''
+      },
+      memory: '',
+      tasks: [],
+      reminders: [],
+      projects: [],
+      notes: [],
+      chatHistory: []
+    };
+
+    function loadData() {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        try {
+          appData = { ...appData, ...JSON.parse(saved) };
+        } catch (e) {
+          console.error('Error al cargar datos:', e);
+        }
+      }
+      if (appData.chatHistory.length === 0) {
+        appData.chatHistory.push({
+          sender: 'assistant',
+          text: `¡Hola! Soy ${appData.settings.name}, tu asistente personal. ¿En qué te ayudo hoy? Puedes pedirme revisar tus tareas, notas o guardar nuevas ideas.`
+        });
+      }
+    }
+
+    function saveData() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+    }
+
+    /* ========================================================
+       NAVEGACIÓN ENTRE VISTAS
+       ======================================================== */
+    function switchTab(viewId) {
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+
+      const targetView = document.getElementById(`view-${viewId}`);
+      if (targetView) targetView.classList.add('active');
+
+      const tabs = ['chat', 'tasks', 'projects', 'notes', 'settings'];
+      const index = tabs.indexOf(viewId);
+      if (index !== -1) {
+        document.querySelectorAll('.nav-btn')[index].classList.add('active');
+      }
+
+      const header = document.getElementById('appHeader');
+      if (viewId === 'chat') header.innerText = `Chat con ${appData.settings.name}`;
+      else if (viewId === 'tasks') header.innerText = 'Tareas y Recordatorios';
+      else if (viewId === 'projects') header.innerText = 'Proyectos y Prioridades';
+      else if (viewId === 'notes') header.innerText = 'Notas y Memoria';
+      else if (viewId === 'settings') header.innerText = 'Ajustes y Privacidad';
+    }
+
+    /* ========================================================
+       MOTOR DE IA Y CHAT LOCAL
+       ======================================================== */
+    function renderChat() {
+      const container = document.getElementById('chatMessages');
+      container.innerHTML = '';
+      appData.chatHistory.forEach(msg => {
+        const div = document.createElement('div');
+        div.className = `message ${msg.sender}`;
+        div.innerText = msg.text;
+        container.appendChild(div);
+      });
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function handleSendChat() {
+      const input = document.getElementById('chatInput');
+      const text = input.value.trim();
+      if (!text) return;
+
+      // Guardar mensaje del usuario
+      appData.chatHistory.push({ sender: 'user', text });
+      input.value = '';
+      renderChat();
+
+      // Procesar respuesta
+      setTimeout(() => {
+        const reply = generateAssistantReply(text);
+        appData.chatHistory.push({ sender: 'assistant', text: reply });
+        saveData();
+        renderChat();
+      }, 400);
+    }
+
+    // El asistente analiza tus tareas y notas en local
+    function generateAssistantReply(query) {
+      const q = query.toLowerCase();
+      const tone = appData.settings.tone;
+      let greeting = tone === 'formal' ? 'Estimado usuario,' : tone === 'motivador' ? '¡Vamos con todo!' : 'Hola,';
+
+      if (q.includes('tarea') || q.includes('pendiente')) {
+        const pending = appData.tasks.filter(t => t.status === 'pending');
+        if (pending.length === 0) {
+          return `${greeting} no tienes tareas pendientes registradas en este momento.`;
+        }
+        const list = pending.map(t => `• ${t.text}`).join('\n');
+        return `${greeting} estas son tus tareas pendientes actuales:\n${list}`;
+      }
+
+      if (q.includes('proyecto')) {         if (appData.projects.length === 0) {
+          return `${greeting} aún no has creado proyectos en la sección correspondiente.`;
+        }
+        const projs = appData.projects.map(p => `• [${p.priority.toUpperCase()}] ${p.name}`).join('\n');
+        return `${greeting} aquí tienes tus proyectos activos:\n${projs}`;
+      }
+
+      if (q.includes('recordatorio')) {
+        if (appData.reminders.length === 0) {
+          return `${greeting} no tienes recordatorios agendados.`;
+        }
+        const rems = appData.reminders.map(r => `• ${r.text} (${r.datetime.replace('T', ' ')})`).join('\n');
+        return `${greeting} tienes los siguientes recordatorios:\n${rems}`;
+      }
+
+      if (q.includes('nota') || q.includes('memoria')) {
+        if (appData.memory) {
+          return `${greeting} en mi memoria tengo registrado: "${appData.memory}". Además tienes ${appData.notes.length} notas guardadas.`;
+        }
+        return `${greeting} tienes ${appData.notes.length} notas guardadas. Puedes revisarlas o añadir más en la pestaña de Notas.`;
+      }
+
+      // Respuesta contextual por tono
+      if (tone === 'conciso') {
+        return `Entendido. ¿Deseas que anote esto como tarea, recordatorio o proyecto?`;
+      } else if (tone === 'formal') {
+        return `He recibido su mensaje. Si precisa coordinar alguna acción, indíqueme si la registro en sus tareas o notas.`;
+      } else if (tone === 'motivador') {
+        return `¡Totalmente de acuerdo! Cada paso cuenta para alcanzar tus metas. ¿Lo convertimos en una tarea de hoy?`;
+      } else {
+        return `Te escucho con atención. Recuerda que puedo mostrarte tus tareas, proyectos o notas cuando me lo pidas.`;
+      }
+    }
+
+    /* ========================================================
+       SECCIÓN DE TAREAS Y RECORDATORIOS
+       ======================================================== */
+    function renderTasks() {
+      const list = document.getElementById('tasksList');
+      list.innerHTML = '';
+
+      if (appData.tasks.length === 0) {
+        list.innerHTML = '<p class="meta-sub">No hay tareas creadas.</p>';
+        return;
+      }
+
+      appData.tasks.forEach((task, idx) => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <div class="card-title">
+            <span style="${task.status === 'completed' ? 'text-decoration: line-through; color: var(--text-muted);' : ''}">${task.text}</span>
+            <span class="badge ${task.status === 'completed' ? 'badge-baja' : task.status === 'in_progress' ? 'badge-media' : 'badge-alta'}">
+              ${task.status === 'completed' ? 'Hecha' : task.status === 'in_progress' ? 'En marcha' : 'Pendiente'}
+            </span>
+          </div>
+          <div class="btn-row">
+            ${task.status !== 'completed' ? `<button onclick="changeTaskStatus(${idx}, 'completed')" class="btn-secondary" style="font-size:0.8rem; padding:8px;">Completar</button>` : ''}
+            ${task.status === 'pending' ? `<button onclick="changeTaskStatus(${idx}, 'in_progress')" class="btn-secondary" style="font-size:0.8rem; padding:8px;">Iniciar</button>` : ''}
+            <button onclick="deleteTask(${idx})" class="btn-danger" style="font-size:0.8rem; padding:8px; width:auto;">Borrar</button>
+          </div>
+        `;
+        list.appendChild(card);
+      });
+    }
+
+    function addTask() {
+      const input = document.getElementById('taskInput');
+      const status = document.getElementById('taskStatusSelect').value;
+      const text = input.value.trim();
+      if (!text) return;
+
+      appData.tasks.push({ text, status, date: new Date().toLocaleDateString('es-ES') });
+      input.value = '';
+      saveData();
+      renderTasks();
+    }
+
+    function changeTaskStatus(index, newStatus) {
+      appData.tasks[index].status = newStatus;
+      saveData();
+      renderTasks();
+    }
+
+    function deleteTask(index) {
+      appData.tasks.splice(index, 1);
+      saveData();
+      renderTasks();
+    }
+
+    function renderReminders() {
+      const list = document.getElementById('remindersList');
+      list.innerHTML = '';
+      if (appData.reminders.length === 0) {
+        list.innerHTML = '<p class="meta-sub">No hay recordatorios pendientes.</p>';
+        return;
+      }
+      appData.reminders.forEach((rem, idx) => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <div class="card-title">${rem.text}</div>
+          <p class="meta-sub">Programado: ${rem.datetime.replace('T', ' - ')}</p>
+          <div class="btn-row" style="margin-top:8px;">
+            <button onclick="deleteReminder(${idx})" class="btn-danger" style="font-size:0.8rem; padding:8px;">Eliminar</button>
+          </div>
+        `;
+        list.appendChild(card);
+      });
+    }
+
+    function addReminder() {
+      const text = document.getElementById('reminderText').value.trim();
+      const dt = document.getElementById('reminderDateTime').value;
+      if (!text || !dt) {
+        alert('Por favor indica el texto y la fecha/hora.');
+        return;
+      }
+      appData.reminders.push({ text, datetime: dt });
+      document.getElementById('reminderText').value = '';
+      document.getElementById('reminderDateTime').value = '';
+      saveData();
+      renderReminders();
+    }
+
+    function deleteReminder(index) {
+      appData.reminders.splice(index, 1);
+      saveData();
+      renderReminders();
+    }
+
+    /* ========================================================
+       SECCIÓN DE PROYECTOS Y PRIORIDADES
+       ======================================================== */
+    function renderProjects() {
+      const list = document.getElementById('projectsList');
+      list.innerHTML = '';
+      if (appData.projects.length === 0) {
+        list.innerHTML = '<p class="meta-sub">No tienes proyectos registrados.</p>';
+        return;
+      }
+
+      appData.projects.forEach((proj, idx) => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <div class="card-title">
+            <span>${proj.name}</span>
+            <span class="badge badge-${proj.priority}">${proj.priority}</span>
+          </div>
+          ${proj.desc ? `<p style="font-size: 0.9rem; margin-bottom: 8px;">${proj.desc}</p>` : ''}
+          <button onclick="deleteProject(${idx})" class="btn-danger" style="font-size:0.8rem; padding:8px; width:auto;">Eliminar</button>
+        `;
+        list.appendChild(card);
+      });
+    }
+
+    function addProject() {
+      const name = document.getElementById('projectName').value.trim();
+      const desc = document.getElementById('projectDesc').value.trim();
+      const priority = document.getElementById('projectPriority').value;
+      if (!name) return;
+
+      appData.projects.push({ name, desc, priority });
+      document.getElementById('projectName').value = '';
+      document.getElementById('projectDesc').value = '';
+      saveData();
+      renderProjects();
+    }
+
+    function deleteProject(index) {
+      appData.projects.splice(index, 1);
+      saveData();
+      renderProjects();
+    }
+
+    /* ========================================================
+       SECCIÓN DE NOTAS Y MEMORIA
+       ======================================================== */
+    function renderNotes() {
+      const list = document.getElementById('notesList');
+      list.innerHTML = '';
+      if (appData.notes.length === 0) {
+        list.innerHTML = '<p class="meta-sub">No hay notas guardadas.</p>';
+        return;
+      }
+      appData.notes.forEach((note, idx) => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <p style="white-space: pre-wrap; font-size: 0.95rem;">${note.content}</p>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
+            <span class="meta-sub">${note.date}</span>
+            <button onclick="deleteNote(${idx})" class="btn-danger" style="font-size:0.75rem; padding:6px 12px; width:auto;">Borrar</button>
+          </div>
+        `;
+        list.appendChild(card);
+      });
+    }
+
+    function addNote() {
+      const input = document.getElementById('noteInput');
+      const content = input.value.trim();
+      if (!content) return;
+
+      appData.notes.push({ content, date: new Date().toLocaleDateString('es-ES') });
+      input.value = '';
+      saveData();
+      renderNotes();
+    }
+
+    function deleteNote(index) {
+      appData.notes.splice(index, 1);
+      saveData();
+      renderNotes();
+    }
+
+    function saveMemory() {
+      const val = document.getElementById('assistantMemory').value.trim();
+      appData.memory = val;
+      saveData();
+      alert('Memoria del asistente actualizada con éxito.');
+    }
+
+    /* ========================================================
+       AJUSTES Y PRIVACIDAD
+       ======================================================== */
+    function loadSettingsUI() {
+      document.getElementById('settingName').value = appData.settings.name;
+      document.getElementById('settingTone').value = appData.settings.tone;
+      document.getElementById('apiKeyInput').value = appData.settings.apiKey || '';
+      document.getElementById('assistantMemory').value = appData.memory || '';
+    }
+
+    function saveSettings() {
+      const name = document.getElementById('settingName').value.trim();
+      const tone = document.getElementById('settingTone').value;
+      const apiKey = document.getElementById('apiKeyInput').value.trim();
+
+      if (name) appData.settings.name = name;
+      appData.settings.tone = tone;
+      appData.settings.apiKey = apiKey;
+
+      saveData();
+      document.getElementById('appHeader').innerText = `Mi Asistente Personal`;
+      alert('Ajustes guardados correctamente.');
+    }
+
+    function exportData() {
+      const blob = new Blob([JSON.stringify(appData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `mi_asistente_copia_${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function wipeData() {
+      const confirmAction = confirm('¿Estás seguro de que quieres eliminar TODOS tus datos? Esta acción no se puede deshacer.');
+      if (confirmAction) {
+        localStorage.removeItem(STORAGE_KEY);
+        location.reload();
+      }
+    }
+
+    /* ========================================================
+       INICIALIZACIÓN
+       ======================================================== */
+    window.addEventListener('DOMContentLoaded', () => {
+      loadData();
+      renderChat();
+      renderTasks();
+      renderReminders();
+      renderProjects();
+      renderNotes();
+      loadSettingsUI();
+
+      // Permitir enviar mensaje con tecla Enter
+      document.getElementById('chatInput').addEventListener('keydown', (e) => {
+        if (e.key === '	Enter') handleSendChat();
+      });
+    });
+  </script>
+</body>
+</html>
+
+
+	
+

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Mi Asistente</string>
+    <string name="title_activity_main">Mi Asistente</string>
+    <string name="package_name">com.miasistente.app</string>
+    <string name="custom_url_scheme">com.miasistente.app</string>
+</resources>
